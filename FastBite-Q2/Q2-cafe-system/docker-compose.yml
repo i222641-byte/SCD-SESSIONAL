@@ -1,0 +1,87 @@
+# Runs the whole FastBite platform with containers:
+#     copy .env.example .env      (fill in passwords)
+#     docker compose up -d --build
+# Services find each other by service NAME (Docker DNS), never localhost.
+# Only the gateway is published to the host; everything else stays on the private network.
+
+x-service: &service
+  restart: unless-stopped
+  networks: [fastbite]
+  env_file: .env
+  depends_on:
+    mongodb:
+      condition: service_healthy
+
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+    networks: [fastbite]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  menu-service:
+    <<: *service
+    build: ./menu-service
+    image: fastbite/menu-service:local
+    environment:
+      PORT: 3001
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/fastbite_menu?authSource=admin
+
+  order-service:
+    <<: *service
+    build: ./order-service
+    image: fastbite/order-service:local
+    environment:
+      PORT: 3002
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/fastbite_orders?authSource=admin
+
+  inventory-service:
+    <<: *service
+    build: ./inventory-service
+    image: fastbite/inventory-service:local
+    environment:
+      PORT: 3003
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/fastbite_inventory?authSource=admin
+
+  customer-service:
+    <<: *service
+    build: ./customer-service
+    image: fastbite/customer-service:local
+    environment:
+      PORT: 3004
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/fastbite_customers?authSource=admin
+
+  payment-service:
+    <<: *service
+    build: ./payment-service
+    image: fastbite/payment-service:local
+    environment:
+      PORT: 3005
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/fastbite_payments?authSource=admin
+
+  api-gateway:
+    restart: unless-stopped
+    networks: [fastbite]
+    env_file: .env
+    build: ./api-gateway
+    image: fastbite/api-gateway:local
+    environment:
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on: [menu-service, order-service, inventory-service, customer-service, payment-service]
+
+networks:
+  fastbite:
+
+volumes:
+  mongo-data:

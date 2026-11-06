@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Secrets - NEVER commit real configuration
+.env
+.env.*
+!.env.example
+
+# Logs / runtime
+logs/
+*.log
+npm-debug.log*
+.pm2/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

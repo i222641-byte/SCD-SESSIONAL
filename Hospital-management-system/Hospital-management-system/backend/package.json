@@ -1,0 +1,13 @@
+{
+  "name": "hospital-appointment-api",
+  "version": "1.0.0",
+  "description": "Hospital Appointment Management System API",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
